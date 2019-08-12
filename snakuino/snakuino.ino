@@ -1,27 +1,28 @@
-#include <MaxMatrix.h>
+#include <MaxMatrix.h> // include librarie to control the LEDs
 
-#define CLOCK 2  // CLK pin of MAX7219 module
+#define CLOCK 2   // CLK pin of MAX7219 module
 #define LOAD 3    // CS pin of MAX7219 module
 #define DATA 4    // DIN pin of MAX7219 module
 
 #define MAX_IN_USE 1    //change this variable to set how many MAX7219's you'll use
 
-#define JS_Y 0 // joystick analog X output
-#define JS_X 1 // joystick analog Y output
-#define JS_SW 12 // joystick switch output
+#define JS_Y 0    // joystick analog X output
+#define JS_X 1    // joystick analog Y output
+#define JS_SW 12  // joystick switch output
 
-#define JS_NRG 13
+#define JS_NRG 13 // joystick needs 5 volts but the 5v output is taken by the screen
 
 #define UP 1
 #define RIGHT 2
 #define DOWN 3
 #define LEFT 4
 
-#define PL_MAX_LENGTH 64
-#define FOOD_NUMBER 1
+#define PL_MAX_LENGTH 64  // snake max length
+#define FOOD_NUMBER 1     // max number of food to appear at the same time
 
-MaxMatrix m(DATA, LOAD, CLOCK, MAX_IN_USE); // define module
+MaxMatrix m(DATA, LOAD, CLOCK, MAX_IN_USE); // define Matrix module
 
+// structure to handle coordinates
 struct Point
 {
   Point()
@@ -34,6 +35,7 @@ struct Point
   int y;
 };
 
+// set of coordinates to print digit on the LEDs      I haven't found a better way sry
 PROGMEM const Point zero[] = {{0,0},{0,1},{0,2},{0,3},{0,4},{1,0},{1,4},{2,0},{2,1},{2,2},{2,3},{2,4}};
 PROGMEM const Point one[] = {{0,0},{0,4},{1,0},{1,1},{1,2},{1,3},{1,4},{2,4}};
 PROGMEM const Point two[] = {{0,0},{0,2},{0,3},{0,4},{1,0},{1,2},{1,4},{2,0},{2,1},{2,2},{2,4}};
@@ -45,15 +47,18 @@ PROGMEM const Point seven[] = {{0,0},{0,3},{0,4},{1,0},{1,2},{2,0},{2,1}};
 PROGMEM const Point eight[] = {{0,0},{0,1},{0,2},{0,3},{0,4},{1,0},{1,2},{1,4},{2,0},{2,1},{2,2},{2,3},{2,4}};
 PROGMEM const Point nine[] = {{0,0},{0,1},{0,2},{0,4},{1,0},{1,2},{1,4},{2,0},{2,1},{2,2},{2,3},{2,4}};
 
+// stocking digit somewhat decently
 const int numberSize[] = { 12, 8, 11, 10, 9, 11, 12, 7, 13, 12 };
 const Point * numbers[] = { zero, one, two, three, four, five, six, seven, eight, nine };
 
+// print an array of points
 void putSprite(int x, int y, const Point * data, int n)
 {
   for (int i = 0; i < n; ++i)
     m.setDot(data[i].x + x, data[i].y + y, 1);
 }
 
+// function to wait a certain amount of time without blocking the program
 unsigned long timing;
 
 bool TimePassed(unsigned long t)
@@ -66,7 +71,7 @@ bool TimePassed(unsigned long t)
   return false;
 }
 
-
+// player class 
 class Player
 {
   public:
@@ -82,7 +87,7 @@ class Player
 
     int Length() { return length; }
   
-    void Hear()
+    void Hear() // used to "hear" what move the players wants to play next this stops a turn back bug
     {
       int tmpDir = dir;
 
@@ -101,7 +106,7 @@ class Player
       }
     }
 
-    void Move()
+    void Move() // Actual move done 10/3 times per second
     {
       for (int i = length; i >= 1; --i)
       {
@@ -118,7 +123,7 @@ class Player
       heard = false;
     }
 
-    bool Contains(int x, int y, int id = 0)
+    bool Contains(int x, int y, int id = 0) // check if a point is on the snake
     {
       for (int i = id; i < length; ++i)
       {
@@ -128,7 +133,7 @@ class Player
       return false;
     }
 
-    bool Collision()
+    bool Collision() // check if the snake is bumping in a wall or itself
     {
       if (Contains(points[0].x, points[0].y, 1))
         return true;
@@ -137,7 +142,7 @@ class Player
       return false;
     }
 
-    bool ScaleUp()
+    bool ScaleUp() // increments snake's length
     {
       if (length < PL_MAX_LENGTH)
       {
@@ -147,13 +152,13 @@ class Player
       return false;
     }
     
-    void Draw()
+    void Draw() // print the snake
     {
       for (int i = 0; i < length; ++i)
         m.setDot(points[i].x, points[i].y, 1);
     }
 
-    void Reset()
+    void Reset() // reset the snake back to the start
     {
       dir = 0;
       length = 1;
@@ -166,14 +171,15 @@ class Player
     }
 
   private:
-    int dir;
-    int length;
-    bool heard;
-    Point points[PL_MAX_LENGTH];
+    int dir;                      // current snake direction
+    int length;                   // current snake length
+    bool heard;                   // whether the user has made an input between two moves
+    Point points[PL_MAX_LENGTH];  // snake's body as an array of points
 };
 
-Player p;
+Player p; // player instance
 
+// class for snake food
 class Food
 {
   public:
@@ -182,7 +188,7 @@ class Food
       pos.x = -2;
       pos.y = -2;
     }
-    Food(int min, int max)
+    Food(int min, int max) // random init 
     {
       while (p.Contains(pos.x, pos.y))
       {
