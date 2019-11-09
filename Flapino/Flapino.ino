@@ -149,11 +149,11 @@ void UpdatePlayer()
     walls[0].Disappear();
     if (scorer == 9)
     {
-      scorer = 0;
       scorel = (scorel == 9) ? 9 : scorel + 1;
+      scorer = (scorel == 9) ? 9 : 0;
     }
     else
-      scorer = (scorel == 9) ? 9 : scorer + 1;
+      scorer = (scorer == 9) ? 9 : scorer + 1;
     if (W_Speed >= 700 && W_SpawnRate > 1)
     {
       W_Speed = 300;
